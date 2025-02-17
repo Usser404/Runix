@@ -1,0 +1,180 @@
+{
+  "docker": {
+    "basic_operations": {
+      "container_management": [
+        {
+          "command": "docker-compose down",
+          "description": "Detener y eliminar contenedores existentes",
+          "category": "cleanup",
+          "tags": ["stop", "remove", "containers"]
+        },
+        {
+          "command": "docker-compose build --no-cache",
+          "description": "Reconstruir contenedores sin usar caché",
+          "category": "build",
+          "tags": ["build", "cache", "fresh"]
+        },
+        {
+          "command": "docker-compose up -d",
+          "description": "Levantar contenedores en modo detached",
+          "category": "startup",
+          "tags": ["start", "background"]
+        },
+        {
+          "command": "docker-compose logs -f frontend",
+          "description": "Ver logs del frontend en tiempo real",
+          "category": "monitoring",
+          "tags": ["logs", "frontend", "realtime"]
+        }
+      ],
+      "image_management": [
+        {
+          "command": "docker rmi $(docker images -q siicgsm-backend)",
+          "description": "Eliminar imágenes del backend",
+          "category": "cleanup",
+          "tags": ["remove", "images", "backend"]
+        },
+        {
+          "command": "docker rmi $(docker images -q siicgsm-frontend)",
+          "description": "Eliminar imágenes del frontend",
+          "category": "cleanup",
+          "tags": ["remove", "images", "frontend"]
+        }
+      ]
+    },
+    "redis_operations": {
+      "cli_commands": [
+        {
+          "command": "docker exec -it siicgsm-redis-1 redis-cli",
+          "description": "Acceder a Redis CLI",
+          "category": "access",
+          "tags": ["redis", "cli"]
+        },
+        {
+          "command": "AUTH default B2EMfsvAddWvJl4c3TdjSjMU9Dc2xYOr",
+          "description": "Autenticación en Redis",
+          "category": "authentication",
+          "tags": ["redis", "auth"]
+        }
+      ]
+    },
+    "swarm_operations": {
+      "management": [
+        {
+          "command": "docker service scale siicgsm_backend=3",
+          "description": "Escalar servicio backend",
+          "category": "scaling",
+          "tags": ["swarm", "scale", "backend"]
+        },
+        {
+          "command": "docker service ps siicgsm_backend",
+          "description": "Ver distribución de réplicas",
+          "category": "monitoring",
+          "tags": ["swarm", "replicas", "status"]
+        },
+        {
+          "command": "docker service logs siicgsm_backend",
+          "description": "Ver logs de todas las réplicas",
+          "category": "monitoring",
+          "tags": ["swarm", "logs", "backend"]
+        }
+      ]
+    },
+    "maintenance": {
+      "cleanup": [
+        {
+          "command": "docker-compose down -v",
+          "description": "Detener contenedores y eliminar volúmenes",
+          "category": "cleanup",
+          "tags": ["stop", "volumes", "remove"]
+        },
+        {
+          "command": "docker system prune -f",
+          "description": "Limpiar recursos no utilizados",
+          "category": "cleanup",
+          "tags": ["system", "prune", "unused"]
+        },
+        {
+          "command": "docker volume prune -f",
+          "description": "Eliminar volúmenes no utilizados",
+          "category": "cleanup",
+          "tags": ["volumes", "prune"]
+        }
+      ]
+    }
+  },
+  "registry": {
+    "setup": [
+      {
+        "command": "docker run -d -p 5000:5000 --restart always --name registry registry:2",
+        "description": "Crear contenedor registry",
+        "category": "initialization",
+        "tags": ["registry", "setup"]
+      }
+    ],
+    "image_management": [
+      {
+        "command": "docker tag localhost/siicgsm-backend:latest localhost:5000/siicgsm-backend:latest",
+        "description": "Etiquetar imagen para registry local",
+        "category": "tagging",
+        "tags": ["registry", "tag", "backend"]
+      },
+      {
+        "command": "docker push localhost:5000/siicgsm-backend:latest",
+        "description": "Subir imagen al registry",
+        "category": "push",
+        "tags": ["registry", "push", "backend"]
+      }
+    ],
+    "maintenance": [
+      {
+        "command": "curl http://localhost:5000/v2/_catalog",
+        "description": "Listar imágenes en registry",
+        "category": "monitoring",
+        "tags": ["registry", "list", "images"]
+      }
+    ]
+  },
+  "deployment": {
+    "development": [
+      {
+        "command": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d",
+        "description": "Levantar ambiente de desarrollo",
+        "category": "startup",
+        "tags": ["development", "compose", "up"]
+      }
+    ],
+    "production": [
+      {
+        "command": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d",
+        "description": "Levantar ambiente de producción",
+        "category": "startup",
+        "tags": ["production", "compose", "up"]
+      }
+    ]
+  },
+  "monitoring": {
+    "logs": [
+      {
+        "command": "docker compose logs -f --tail=100 frontend",
+        "description": "Ver últimas 100 líneas de logs del frontend",
+        "category": "monitoring",
+        "tags": ["logs", "frontend", "tail"]
+      },
+      {
+        "command": "docker compose logs -f --since 2024-03-19T00:00:00 frontend",
+        "description": "Ver logs desde una fecha específica",
+        "category": "monitoring",
+        "tags": ["logs", "frontend", "date"]
+      }
+    ],
+    "health": [
+      {
+        "command": "docker service inspect siicgsm_backend --pretty",
+        "description": "Inspeccionar estado del servicio backend",
+        "category": "monitoring",
+        "tags": ["service", "health", "backend"]
+      }
+    ]
+  }
+}

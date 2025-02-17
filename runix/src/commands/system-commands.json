@@ -1,0 +1,56 @@
+{
+  "system": {
+    "networking": [
+      {
+        "command": "netstat -tulnp | grep 5540",
+        "description": "Verificar puertos en uso",
+        "category": "network",
+        "tags": ["ports", "networking", "check"]
+      },
+      {
+        "command": "curl -v http://localhost:8000/api/health/",
+        "description": "Verificar salud del servicio",
+        "category": "health",
+        "tags": ["health", "api", "check"]
+      }
+    ],
+    "file_operations": [
+      {
+        "command": "mkdir -p scripts",
+        "description": "Crear directorio scripts",
+        "category": "filesystem",
+        "tags": ["directory", "create"]
+      },
+      {
+        "command": "chmod +x scripts/entrypoint.sh",
+        "description": "Dar permisos de ejecución",
+        "category": "permissions",
+        "tags": ["chmod", "execute", "permissions"]
+      }
+    ],
+    "monitoring": [
+      {
+        "command": "df -h",
+        "description": "Verificar espacio en disco",
+        "category": "storage",
+        "tags": ["disk", "space", "check"]
+      }
+    ]
+  },
+  "ssl": {
+    "certificate_management": [
+      {
+        "command": "openssl req -newkey rsa:4096 -nodes -sha256 -keyout certs/domain.key -x509 -days 365 -out certs/domain.crt -subj \"/C=US/ST=State/L=City/O=Organization/CN=siicgsm.invemar.org.co\"",
+        "description": "Generar certificado SSL",
+        "category": "ssl",
+        "tags": ["certificate", "generate", "ssl"]
+      },
+      {
+        "command": "openssl x509 -in registry/certs/domain.crt -text -noout",
+        "description": "Verificar certificado SSL",
+        "category": "ssl",
+        "tags": ["certificate", "verify", "ssl"]
+      }
+    ]
+  }
+}
