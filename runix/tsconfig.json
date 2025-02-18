@@ -1,12 +1,12 @@
 {
 	"compilerOptions": {
-	  "target": "ES6",
-	  "module": "commonjs",
-	  "strict": true,
-	  "esModuleInterop": true,
-	  "skipLibCheck": true,
-	  "forceConsistentCasingInFileNames": true
-	},
-	"include": ["src/**/*.ts"]
-  }
-  
+		"module": "Node16",
+		"target": "ES2022",
+		"lib": ["ES2022"],
+		"sourceMap": true,
+		"rootDir": "src",
+		"outDir": "dist",  // ⬅⬅ Todos los archivos compilados irán a 'dist'
+		"strict": true,
+		"forceConsistentCasingInFileNames": true
+	}
+} 

@@ -1,71 +1,41 @@
-# runix README
+# Runix README
 
-This is the README for your extension "runix". After writing up a brief description, we recommend including the following sections.
+Runix es un proyecto independiente diseñado para implementar un sistema de filtrado por categorías que permite ejecutar comandos en la terminal integrada de Visual Studio Code. Este proyecto no es una extensión de VS Code, sino una herramienta que se probará localmente antes de ser subida a un repositorio remoto.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+Runix permite a los usuarios organizar y ejecutar comandos en la terminal integrada de VS Code de manera eficiente mediante un sistema de filtrado por categorías. Esto facilita la ejecución de comandos específicos según las necesidades del usuario, mejorando la productividad y la organización.
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+Para ejecutar Runix, asegúrate de cumplir con los siguientes requisitos:
 
-## Extension Settings
+- Tener instalado Visual Studio Code.
+- Contar con un entorno de desarrollo configurado.
+- Acceso a la terminal integrada de VS Code.
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+## Usage
 
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+Pendiente por darle info del uso correctamente
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+Actualmente, Runix está en desarrollo y se probará localmente antes de su lanzamiento oficial. Si encuentras algún problema durante las pruebas, por favor documenta los pasos para reproducirlo y compártelo con el equipo de desarrollo.
 
 ## Release Notes
+### 0.1.0
 
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+- Implementación inicial del sistema de filtrado por categorías para comandos.
+- Pruebas locales en curso.
 
 ---
 
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
 ## Working with Markdown
 
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
+Puedes editar este archivo README utilizando Visual Studio Code. Aquí tienes algunos atajos útiles para trabajar con Markdown:
 
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
+- Dividir el editor (`Cmd+\` en macOS o `Ctrl+\` en Windows y Linux).
+- Alternar vista previa (`Shift+Cmd+V` en macOS o `Shift+Ctrl+V` en Windows y Linux).
+- Presiona `Ctrl+Espacio` (Windows, Linux, macOS) para ver una lista de fragmentos de Markdown.
 
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+**¡Disfruta usando Runix!**
