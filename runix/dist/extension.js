@@ -38,43 +38,109 @@ var vscode = __toESM(require("vscode"));
 var fs = __toESM(require("fs"));
 var path = __toESM(require("path"));
 var loadCommands = (fileName, context) => {
+  console.log(`\u26A1 Cargando JSON: ${fileName}`);
   const filePath = path.join(context.extensionPath, "src", "commands", fileName);
+  console.log(`\u{1F4C2} Intentando cargar el archivo JSON desde: ${filePath}`);
   if (!fs.existsSync(filePath)) {
-    vscode.window.showErrorMessage(`\u274C No se encontr\xF3 el archivo: ${fileName}`);
+    vscode.window.showErrorMessage(`\u274C No se encontr\xF3 el archivo: ${filePath}`);
     return {};
   }
-  const rawData = fs.readFileSync(filePath, "utf8");
-  return JSON.parse(rawData);
+  try {
+    const rawData = fs.readFileSync(filePath, "utf8");
+    console.log(`\u{1F4C4} JSON cargado (${fileName}):`, rawData);
+    return JSON.parse(rawData);
+  } catch (error) {
+    vscode.window.showErrorMessage(`\u274C Error al leer ${fileName}: ${error}`);
+    return {};
+  }
 };
 function activate(context) {
-  console.log("\u2705 Runix extension activated!");
-  const disposable = vscode.commands.registerCommand("runix.pruebacon1", async () => {
-    vscode.window.showInformationMessage("\xA1\xA1Welcome to Runix!!");
-    const dockerCommands = loadCommands("docker-commands.json", context);
-    if (!dockerCommands || !dockerCommands.docker || !dockerCommands.docker.basic_operations) {
-      vscode.window.showErrorMessage("\u274C Error: No se pudieron cargar los comandos.");
-      return;
-    }
-    const categories = Object.keys(dockerCommands.docker.basic_operations);
-    const selectedCategory = await vscode.window.showQuickPick(categories, {
-      placeHolder: "Selecciona una categor\xEDa de comandos (Docker)"
-    });
-    if (!selectedCategory) {
-      return;
-    }
-    const commandsInCategory = dockerCommands.docker.basic_operations[selectedCategory];
-    const selectedCommand = await vscode.window.showQuickPick(
-      commandsInCategory.map((cmd) => cmd.command),
-      { placeHolder: `Selecciona un comando de ${selectedCategory}` }
+  console.log("Runix extension activated!");
+  const systemCommands = loadCommands("system-commands.json", context);
+  const dockerCommands = loadCommands("docker-commands.json", context);
+  const gitCommands = loadCommands("git-commands.json", context);
+  console.log("\u{1F50D} System Commands:", systemCommands);
+  console.log("\u{1F433} Docker Commands:", dockerCommands);
+  console.log("\u{1F6E0} Git Commands:", gitCommands);
+  async function selectCommand(commandList) {
+    return await vscode.window.showQuickPick(
+      commandList.map((cmd) => ({
+        label: cmd.description || cmd.command,
+        detail: cmd.command,
+        description: cmd.category ? `[${cmd.category}]` : ""
+      })),
+      {
+        placeHolder: "Selecciona un comando",
+        matchOnDescription: true,
+        matchOnDetail: true
+      }
     );
-    if (!selectedCommand) {
+  }
+  function executeCommand(commandItem) {
+    const terminal = vscode.window.createTerminal("Runix Terminal");
+    terminal.show();
+    terminal.sendText(commandItem.detail);
+  }
+  const disposable = vscode.commands.registerCommand("runix.pruebavarioscomandos", async () => {
+    vscode.window.showInformationMessage("\xA1\xA1Welcome to Runix!!");
+    const commandType = await vscode.window.showQuickPick(
+      ["Comandos del System", "Comandos de Docker", "Comandos de Git"],
+      { placeHolder: "Selecciona una categor\xEDa de comandos" }
+    );
+    if (!commandType) {
       return;
     }
-    const command = commandsInCategory.find((cmd) => cmd.command === selectedCommand);
-    if (command) {
-      const terminal = vscode.window.createTerminal("Runix Terminal");
-      terminal.show();
-      terminal.sendText(command.command);
+    let commandsRoot;
+    if (commandType === "Comandos del System") {
+      commandsRoot = systemCommands;
+    } else if (commandType === "Comandos de Docker") {
+      commandsRoot = dockerCommands;
+    } else if (commandType === "Comandos de Git") {
+      commandsRoot = gitCommands;
+    } else {
+      return;
+    }
+    const mainCategories = Object.keys(commandsRoot);
+    const selectedMainCategory = await vscode.window.showQuickPick(
+      mainCategories,
+      { placeHolder: `Selecciona una categor\xEDa principal` }
+    );
+    if (!selectedMainCategory) {
+      return;
+    }
+    const mainCategoryContent = commandsRoot[selectedMainCategory];
+    const subCategories = Object.keys(mainCategoryContent);
+    const selectedSubCategory = await vscode.window.showQuickPick(
+      subCategories,
+      { placeHolder: `Selecciona una subcategor\xEDa` }
+    );
+    if (!selectedSubCategory) {
+      return;
+    }
+    const subCategoryContent = mainCategoryContent[selectedSubCategory];
+    if (Array.isArray(subCategoryContent)) {
+      const selectedCommand2 = await selectCommand(subCategoryContent);
+      if (selectedCommand2) {
+        executeCommand(selectedCommand2);
+      }
+      return;
+    }
+    const commandGroups = Object.keys(subCategoryContent);
+    const selectedCommandGroup = await vscode.window.showQuickPick(
+      commandGroups,
+      { placeHolder: `Selecciona un grupo de comandos` }
+    );
+    if (!selectedCommandGroup) {
+      return;
+    }
+    const commandList = subCategoryContent[selectedCommandGroup];
+    if (!Array.isArray(commandList)) {
+      vscode.window.showErrorMessage(`\u274C Formato incorrecto: se esperaba un array de comandos`);
+      return;
+    }
+    const selectedCommand = await selectCommand(commandList);
+    if (selectedCommand) {
+      executeCommand(selectedCommand);
     }
   });
   context.subscriptions.push(disposable);

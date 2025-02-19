@@ -12,7 +12,7 @@
   "contributes": {
     "commands": [
       {
-        "command": "runix.pruebacon1",
+        "command": "runix.pruebavarioscomandos",
         "title": "Runix Terminal Filter"
       }
     ]
