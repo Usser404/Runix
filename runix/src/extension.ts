@@ -1,6 +1,3 @@
-/*---------------------------------------------------------------------------
-                                    IMPORTS
----------------------------------------------------------------------------*/
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -17,26 +14,21 @@ interface StoredCommand {
 /*---------------------------------------------------------------------------
                     FUNCIONAMIENTO DEL HISTORIAL
 ---------------------------------------------------------------------------*/
-// Clase para manejar el historial
 class HistoryManager {
     private context: vscode.ExtensionContext;
     private static readonly HISTORY_KEY = 'runixHistory';
-    private static readonly MAX_HISTORY = 20; // Máximo número de comandos en el historial
+    private static readonly MAX_HISTORY = 20;
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
     }
 
-    // Obtener historial
     getHistory(): StoredCommand[] {
         return this.context.globalState.get<StoredCommand[]>(HistoryManager.HISTORY_KEY, []);
     }
 
-    // Agregar al historial
     async addToHistory(command: string, description: string, category: string, source: string): Promise<void> {
         let history = this.getHistory();
-
-        // Crear nuevo comando con timestamp
         const newCommand: StoredCommand = {
             command,
             description,
@@ -45,29 +37,54 @@ class HistoryManager {
             source
         };
 
-        // Remover duplicados si existen
         history = history.filter(h => h.command !== command);
-
-        // Agregar al inicio
         history.unshift(newCommand);
-
-        // Mantener solo los últimos MAX_HISTORY elementos
         history = history.slice(0, HistoryManager.MAX_HISTORY);
-
-        // Guardar el historial actualizado
         await this.context.globalState.update(HistoryManager.HISTORY_KEY, history);
     }
 
-    // Limpiar historial
     async clearHistory(): Promise<void> {
         await this.context.globalState.update(HistoryManager.HISTORY_KEY, []);
     }
 }
 
 /*---------------------------------------------------------------------------
+                    UTILIDADES PARA MANEJO DE COMANDOS
+---------------------------------------------------------------------------*/
+function getAllCategories(commandRoot: any): string[] {
+    const categories: string[] = [];
+    
+    function traverse(obj: any, prefix: string = '') {
+        Object.keys(obj).forEach(key => {
+            if (Array.isArray(obj[key])) {
+                categories.push(prefix ? `${prefix} > ${key}` : key);
+            } else if (typeof obj[key] === 'object') {
+                traverse(obj[key], prefix ? `${prefix} > ${key}` : key);
+            }
+        });
+    }
+    
+    traverse(commandRoot);
+    return categories;
+}
+
+function getCommandsFromPath(commandRoot: any, path: string): any[] {
+    const parts = path.split(' > ');
+    let current = commandRoot;
+    
+    for (const part of parts) {
+        if (current[part] === undefined) {
+            return [];
+        }
+        current = current[part];
+    }
+    
+    return Array.isArray(current) ? current : [];
+}
+
+/*---------------------------------------------------------------------------
                     FUNCIONAMIENTO DEL PLUGIN
 ---------------------------------------------------------------------------*/
-// Función para leer/cargar los comandos del archivo JSON
 const loadCommands = (fileName: string, context: vscode.ExtensionContext): any => {
     console.log(`⚡ Cargando JSON: ${fileName}`);
     const filePath = path.join(context.extensionPath, 'src', 'commands', fileName);
@@ -89,80 +106,58 @@ const loadCommands = (fileName: string, context: vscode.ExtensionContext): any =
     }
 };
 
-// Este método se llama cuando se activa la extensión.
+async function selectCommand(commandList: any[]): Promise<any | undefined> {
+    if (!Array.isArray(commandList)) {
+        console.error('commandList no es un array:', commandList);
+        return undefined;
+    }
+
+    return await vscode.window.showQuickPick(
+        commandList.map(cmd => ({
+            label: cmd.description || cmd.command,
+            detail: cmd.command,
+            description: cmd.category ? `[${cmd.category}]` : ''
+        })),
+        {
+            placeHolder: 'Selecciona un comando',
+            matchOnDescription: true,
+            matchOnDetail: true
+        }
+    );
+}
+
 export function activate(context: vscode.ExtensionContext) {
     console.log('✅ Runix extension activated!');
 
-    // Instancia del historial
     const historyManager = new HistoryManager(context);
-
-    // Cargar los JSON individualmente.
     const systemCommands = loadCommands('system-commands.json', context);
     const dockerCommands = loadCommands('docker-commands.json', context);
     const gitCommands = loadCommands('git-commands.json', context);
 
-    console.log("🔍 System Commands:", systemCommands);
-    console.log("🐳 Docker Commands:", dockerCommands);
-    console.log("🛠 Git Commands:", gitCommands);
-
-    // Función para seleccionar un comando de una lista
-    async function selectCommand(commandList: any[]): Promise<any | undefined> {
-        let history = historyManager.getHistory();
-
-        // Ordenar los comandos, priorizando los más usados
-        commandList.sort((a, b) => {
-            const aIndex = history.findIndex(h => h.command === a.command);
-            const bIndex = history.findIndex(h => h.command === b.command);
-            return (bIndex === -1 ? Infinity : bIndex) - (aIndex === -1 ? Infinity : aIndex);
-        });
-
-        return await vscode.window.showQuickPick(
-            commandList.map(cmd => ({
-                label: cmd.description || cmd.command,
-                detail: cmd.command,
-                description: cmd.category ? `[${cmd.category}]` : ''
-            })),
-            {
-                placeHolder: 'Selecciona un comando',
-                matchOnDescription: true,
-                matchOnDetail: true
-            }
-        );
-    }
-
-    // Función para ejecutar el comando seleccionado
     async function executeCommand(commandItem: any, category: string, source: string): Promise<void> {
         const terminal = vscode.window.createTerminal('Runix Terminal');
         terminal.show();
         terminal.sendText(commandItem.detail);
-
-        // Guardar en historial
         await historyManager.addToHistory(commandItem.detail, commandItem.label, category, source);
     }
 
-    // Registramos el comando
     const disposable = vscode.commands.registerCommand('runix.pruebavarioscomandos', async () => {
         vscode.window.showInformationMessage('¡¡Welcome to Runix!!');
-
-        // Obtener historial
         let history = historyManager.getHistory();
 
-        // Seleccionamos el tipo de comandos
         const commandType = await vscode.window.showQuickPick(
             ['📜 Historial de Más Usados', 'Comandos del System', 'Comandos de Docker', 'Comandos de Git'],
             { placeHolder: 'Selecciona una categoría de comandos' }
         );
 
-        if (!commandType) {return;}
+        if (!commandType) { return; }
 
-        // ✅ Si el usuario selecciona "Historial"
         if (commandType === '📜 Historial de Más Usados') {
             if (history.length === 0) {
                 vscode.window.showInformationMessage('📜 No hay comandos en el historial.');
                 return;
             }
 
-            // Mostrar la lista de comandos más usados
             const selectedCommand = await vscode.window.showQuickPick(
                 history.map(cmd => ({
                     label: cmd.description || cmd.command,
@@ -172,20 +167,16 @@ export function activate(context: vscode.ExtensionContext) {
                 { placeHolder: '📜 Selecciona un comando del historial' }
             );
 
-            if (!selectedCommand) {return;}
+            if (!selectedCommand) { return; }
 
-            // Ejecutar el comando seleccionado
             const terminal = vscode.window.createTerminal('Runix Terminal');
             terminal.show();
             terminal.sendText(selectedCommand.detail);
-
-            // Registrar que este comando se usó nuevamente
             await historyManager.addToHistory(selectedCommand.detail, selectedCommand.label, selectedCommand.description, "Historial");
-
             return;
         }
 
-        // Si el usuario elige una categoría normal (System, Docker, Git)
+        // Seleccionar comandos de categorías
         let commandsRoot: any;
         if (commandType === 'Comandos del System') {
             commandsRoot = systemCommands;
@@ -197,27 +188,28 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        // Seleccionar la categoría principal
-        const mainCategories = Object.keys(commandsRoot);
-        const selectedMainCategory = await vscode.window.showQuickPick(
-            mainCategories,
-            { placeHolder: `Selecciona una categoría principal` }
+        // Obtener y mostrar todas las categorías disponibles
+        const availableCategories = getAllCategories(commandsRoot);
+        const selectedCategory = await vscode.window.showQuickPick(
+            availableCategories,
+            { placeHolder: 'Selecciona una categoría' }
         );
 
-        if (!selectedMainCategory) {return;}
-        const mainCategoryContent = commandsRoot[selectedMainCategory];
+        if (!selectedCategory) { return; }
 
-        // Seleccionar de la lista de comandos
-        const selectedCommand = await selectCommand(mainCategoryContent);
+        // Obtener los comandos de la categoría seleccionada
+        const commandList = getCommandsFromPath(commandsRoot, selectedCategory);
+        
+        // Seleccionar y ejecutar el comando
+        const selectedCommand = await selectCommand(commandList);
         if (selectedCommand) {
-            await executeCommand(selectedCommand, selectedMainCategory, commandType);
+            await executeCommand(selectedCommand, selectedCategory, commandType);
         }
     });
 
     context.subscriptions.push(disposable);
 }
 
-// método para cuando la función está desactivada.
 export function deactivate() {
     console.log('❌ Runix extension deactivated.');
 }

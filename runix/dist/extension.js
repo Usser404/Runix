@@ -41,15 +41,12 @@ var HistoryManager = class _HistoryManager {
   context;
   static HISTORY_KEY = "runixHistory";
   static MAX_HISTORY = 20;
-  // Máximo número de comandos en el historial
   constructor(context) {
     this.context = context;
   }
-  // Obtener historial
   getHistory() {
     return this.context.globalState.get(_HistoryManager.HISTORY_KEY, []);
   }
-  // Agregar al historial
   async addToHistory(command, description, category, source) {
     let history = this.getHistory();
     const newCommand = {
@@ -64,11 +61,35 @@ var HistoryManager = class _HistoryManager {
     history = history.slice(0, _HistoryManager.MAX_HISTORY);
     await this.context.globalState.update(_HistoryManager.HISTORY_KEY, history);
   }
-  // Limpiar historial
   async clearHistory() {
     await this.context.globalState.update(_HistoryManager.HISTORY_KEY, []);
   }
 };
+function getAllCategories(commandRoot) {
+  const categories = [];
+  function traverse(obj, prefix = "") {
+    Object.keys(obj).forEach((key) => {
+      if (Array.isArray(obj[key])) {
+        categories.push(prefix ? `${prefix} > ${key}` : key);
+      } else if (typeof obj[key] === "object") {
+        traverse(obj[key], prefix ? `${prefix} > ${key}` : key);
+      }
+    });
+  }
+  traverse(commandRoot);
+  return categories;
+}
+function getCommandsFromPath(commandRoot, path2) {
+  const parts = path2.split(" > ");
+  let current = commandRoot;
+  for (const part of parts) {
+    if (current[part] === void 0) {
+      return [];
+    }
+    current = current[part];
+  }
+  return Array.isArray(current) ? current : [];
+}
 var loadCommands = (fileName, context) => {
   console.log(`\u26A1 Cargando JSON: ${fileName}`);
   const filePath = path.join(context.extensionPath, "src", "commands", fileName);
@@ -86,35 +107,30 @@ var loadCommands = (fileName, context) => {
     return {};
   }
 };
+async function selectCommand(commandList) {
+  if (!Array.isArray(commandList)) {
+    console.error("commandList no es un array:", commandList);
+    return void 0;
+  }
+  return await vscode.window.showQuickPick(
+    commandList.map((cmd) => ({
+      label: cmd.description || cmd.command,
+      detail: cmd.command,
+      description: cmd.category ? `[${cmd.category}]` : ""
+    })),
+    {
+      placeHolder: "Selecciona un comando",
+      matchOnDescription: true,
+      matchOnDetail: true
+    }
+  );
+}
 function activate(context) {
   console.log("\u2705 Runix extension activated!");
   const historyManager = new HistoryManager(context);
   const systemCommands = loadCommands("system-commands.json", context);
   const dockerCommands = loadCommands("docker-commands.json", context);
   const gitCommands = loadCommands("git-commands.json", context);
-  console.log("\u{1F50D} System Commands:", systemCommands);
-  console.log("\u{1F433} Docker Commands:", dockerCommands);
-  console.log("\u{1F6E0} Git Commands:", gitCommands);
-  async function selectCommand(commandList) {
-    let history = historyManager.getHistory();
-    commandList.sort((a, b) => {
-      const aIndex = history.findIndex((h) => h.command === a.command);
-      const bIndex = history.findIndex((h) => h.command === b.command);
-      return (bIndex === -1 ? Infinity : bIndex) - (aIndex === -1 ? Infinity : aIndex);
-    });
-    return await vscode.window.showQuickPick(
-      commandList.map((cmd) => ({
-        label: cmd.description || cmd.command,
-        detail: cmd.command,
-        description: cmd.category ? `[${cmd.category}]` : ""
-      })),
-      {
-        placeHolder: "Selecciona un comando",
-        matchOnDescription: true,
-        matchOnDetail: true
-      }
-    );
-  }
   async function executeCommand(commandItem, category, source) {
     const terminal = vscode.window.createTerminal("Runix Terminal");
     terminal.show();
@@ -163,18 +179,18 @@ function activate(context) {
     } else {
       return;
     }
-    const mainCategories = Object.keys(commandsRoot);
-    const selectedMainCategory = await vscode.window.showQuickPick(
-      mainCategories,
-      { placeHolder: `Selecciona una categor\xEDa principal` }
+    const availableCategories = getAllCategories(commandsRoot);
+    const selectedCategory = await vscode.window.showQuickPick(
+      availableCategories,
+      { placeHolder: "Selecciona una categor\xEDa" }
     );
-    if (!selectedMainCategory) {
+    if (!selectedCategory) {
       return;
     }
-    const mainCategoryContent = commandsRoot[selectedMainCategory];
-    const selectedCommand = await selectCommand(mainCategoryContent);
+    const commandList = getCommandsFromPath(commandsRoot, selectedCategory);
+    const selectedCommand = await selectCommand(commandList);
     if (selectedCommand) {
-      await executeCommand(selectedCommand, selectedMainCategory, commandType);
+      await executeCommand(selectedCommand, selectedCategory, commandType);
     }
   });
   context.subscriptions.push(disposable);
