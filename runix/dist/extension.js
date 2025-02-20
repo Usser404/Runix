@@ -65,6 +65,12 @@ var HistoryManager = class _HistoryManager {
     await this.context.globalState.update(_HistoryManager.HISTORY_KEY, []);
   }
 };
+function getCurrentWorkspaceFolder() {
+  if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+    return vscode.workspace.workspaceFolders[0].uri.fsPath;
+  }
+  return void 0;
+}
 function getAllCategories(commandRoot) {
   const categories = [];
   function traverse(obj, prefix = "") {
@@ -133,6 +139,14 @@ function activate(context) {
   const gitCommands = loadCommands("git-commands.json", context);
   async function executeCommand(commandItem, category, source) {
     const terminal = vscode.window.createTerminal("Runix Terminal");
+    const workspaceFolder = getCurrentWorkspaceFolder();
+    if (workspaceFolder) {
+      terminal.sendText(`cd "${workspaceFolder}"`);
+      terminal.sendText('echo "\u{1F4C2} Directorio actual: $(pwd)"');
+      terminal.sendText('echo "\u26A1 Ejecutando comando..."');
+    } else {
+      terminal.sendText('echo "\u26A0\uFE0F No se detect\xF3 un workspace activo"');
+    }
     terminal.show();
     terminal.sendText(commandItem.detail);
     await historyManager.addToHistory(commandItem.detail, commandItem.label, category, source);
@@ -163,10 +177,7 @@ function activate(context) {
       if (!selectedCommand2) {
         return;
       }
-      const terminal = vscode.window.createTerminal("Runix Terminal");
-      terminal.show();
-      terminal.sendText(selectedCommand2.detail);
-      await historyManager.addToHistory(selectedCommand2.detail, selectedCommand2.label, selectedCommand2.description, "Historial");
+      await executeCommand(selectedCommand2, selectedCommand2.description, "Historial");
       return;
     }
     let commandsRoot;

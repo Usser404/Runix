@@ -13,7 +13,6 @@ interface StoredCommand {
     timestamp: number;
     source: string;
 }
-
 /*---------------------------------------------------------------------------
                     FUNCIONAMIENTO DEL HISTORIAL
 ---------------------------------------------------------------------------*/
@@ -51,8 +50,16 @@ class HistoryManager {
     }
 }
 
+// Agregamos una funcion para obtener el directorio de trabajo (actual)
+function getCurrentWorkspaceFolder(): string | undefined {
+    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+        return vscode.workspace.workspaceFolders[0].uri.fsPath;
+    }
+    return undefined;
+}
+
 /*---------------------------------------------------------------------------
-                    UTILIDADES PARA MANEJO DE COMANDOS
+                      UTILIDADES PARA MANEJO DE COMANDOS
 ---------------------------------------------------------------------------*/
 function getAllCategories(commandRoot: any): string[] {
     const categories: string[] = [];
@@ -84,9 +91,8 @@ function getCommandsFromPath(commandRoot: any, path: string): any[] {
     
     return Array.isArray(current) ? current : [];
 }
-
 /*---------------------------------------------------------------------------
-                    FUNCIONAMIENTO DEL PLUGIN
+                         FUNCIONAMIENTO DEL PLUGIN
 ---------------------------------------------------------------------------*/
 const loadCommands = (fileName: string, context: vscode.ExtensionContext): any => {
     console.log(`⚡ Cargando JSON: ${fileName}`);
@@ -139,6 +145,23 @@ export function activate(context: vscode.ExtensionContext) {
 
     async function executeCommand(commandItem: any, category: string, source: string): Promise<void> {
         const terminal = vscode.window.createTerminal('Runix Terminal');
+        
+        // Obtener el directorio de trabajo actual
+        const workspaceFolder = getCurrentWorkspaceFolder();
+        
+        if (workspaceFolder) {
+            // Primero navegamos al directorio del workspace.
+            terminal.sendText(`cd "${workspaceFolder}"`);
+            
+            // Mostramos el directorio actual para confirmar.
+            terminal.sendText('echo "📂 Directorio actual: $(pwd)"');
+            
+            // Agregamos una pequeña pausa visual.
+            terminal.sendText('echo "⚡ Ejecutando comando..."');
+        } else {
+            terminal.sendText('echo "⚠️ No se detectó un workspace activo"');
+        }
+        
         terminal.show();
         terminal.sendText(commandItem.detail);
         await historyManager.addToHistory(commandItem.detail, commandItem.label, category, source);
@@ -172,10 +195,8 @@ export function activate(context: vscode.ExtensionContext) {
 
             if (!selectedCommand) { return; }
 
-            const terminal = vscode.window.createTerminal('Runix Terminal');
-            terminal.show();
-            terminal.sendText(selectedCommand.detail);
-            await historyManager.addToHistory(selectedCommand.detail, selectedCommand.label, selectedCommand.description, "Historial");
+            // Usando la función executeCommand para el historial también
+            await executeCommand(selectedCommand, selectedCommand.description, "Historial");
             return;
         }
 
@@ -216,3 +237,6 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {
     console.log('❌ Runix extension deactivated.');
 }
+/*---------------------------------------------------------------------------
+                             FIN DEL SHOW
+---------------------------------------------------------------------------*/
